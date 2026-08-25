@@ -124,6 +124,26 @@ If you'd rather have it in HA, a `rest` sensor is enough:
 
 The index positions match the JSON at the top.
 
+# Notes from running it for eight months
+
+I've had a dashboard polling the station every 10 seconds since Christmas, with about a million readings stored. Things I've learnt that might save you some time:
+
+**Polling.** Every 10 seconds is fine, the station doesn't seem to mind. I only write one reading a minute to disk though, that's plenty for charts and keeps the file small.
+
+**Give it a fixed IP.** The station picks up a new DHCP lease if you reset it or it reboots, and everything pointing at the old address goes dark. Reserve the address in your router.
+
+**Bad readings when the outdoor unit drops out.** If the console loses contact with the outdoor sensor for a moment you'll get sentinel values back rather than an error, things like -40 °C and 10% humidity. If you're keeping history, filter them. I use -25 to 45 °C, 15 to 100% humidity, 920 to 1060 hPa, and anything above that gets thrown away. Adjust for your climate.
+
+**The station goes offline sometimes.** Mine dropped off the network for weeks once (flat batteries in the outdoor unit and I hadn't noticed). Whatever you build should cope with the poll failing and keep serving the last good reading rather than falling over.
+
+**Wind and rain by name, not position.** Indoor, Outdoor and Pressure always come back as two rows in the same order, but I'd still read the Wind Speed and Rainfall lists by the name in the first column rather than by index. Cheap insurance if a firmware update reorders them.
+
+**Storage.** I went with an append-only JSONL file (one JSON object per line, short keys) rather than a database. No dependencies, trivial to back up, and `grep` works on it. At one row a minute it's about 15 MB a year. If you want charts over long ranges, read the file backwards from the end and stop when you pass the cutoff, rather than parsing the whole thing.
+
+**Filling in history from before you had the station.** Open-Meteo's archive API (`archive-api.open-meteo.com`) gives you free hourly ERA5 reanalysis for any lat/long back to 1940, no key needed. It's a model, not your sensor, so tag those rows and keep them separate from real readings when you work out records. If the station was uploading to Wunderground before you cut it off, that history is retrievable too, at 5 minute resolution.
+
+**Derived values.** The console gives you the raw numbers and nothing else. Beaufort scale from wind speed, pressure trend from the last three hours of readings, and the NWS heat index and wind chill formulas for "feels like" are all straightforward to add on top and make the data much more readable.
+
 # Further Work
 It looks like there are a bunch of weather stations using the same SoC (the chip is CCL's WeatherRouter, ACCUR8 is just the brand on the box). I suspect you can pull data directly from all of them. Please let me know if it works for you, ideally with the model and firmware version, and I'll list it here.
 
