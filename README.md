@@ -144,6 +144,9 @@ I've had a dashboard polling the station every 10 seconds since Christmas, with 
 
 **Derived values.** The console gives you the raw numbers and nothing else. Beaufort scale from wind speed, pressure trend from the last three hours of readings, and the NWS heat index and wind chill formulas for "feels like" are all straightforward to add on top and make the data much more readable.
 
+# Firmware teardown
+The same pen test that made me block this thing off the internet turned into a full static teardown of the WiFi module's firmware: every endpoint it serves, the upload service the settings page hides from you, the console serial protocol, and the complete lack of authentication on any of it. Written up in [FIRMWARE.md](FIRMWARE.md).
+
 # Further Work
 It looks like there are a bunch of weather stations using the same SoC (the chip is CCL's WeatherRouter, ACCUR8 is just the brand on the box). I suspect you can pull data directly from all of them. Please let me know if it works for you, ideally with the model and firmware version, and I'll list it here.
 
