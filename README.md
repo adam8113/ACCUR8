@@ -92,6 +92,8 @@ When viewing the configuration page's source, I saw it uses two JavaScript files
 
 Then restart weewx. It reads the unit off each value and converts, so it doesn't matter what units the console is set to. Rain is worked out as the difference in the station's running total between polls, which is what WeeWX wants. You can test it on its own with `python3 weatherrouter.py http://<IP>/client?command=record`.
 
+If you've paired extra sensors, each one comes back as its own group (`Sensor 1`, `Sensor 2` and so on) and goes into `extraTemp1`/`extraHumid1`, `extraTemp2`/`extraHumid2` and so on, matched on the group name rather than its position in the JSON. The `wview_extended` schema that WeeWX 5 uses by default has eight of each. The older `wview` schema stops at `extraTemp3` and `extraHumid2`, so check which one your database was built with before you pair five more sensors, otherwise WeeWX will quietly drop the higher channels. A station with a light sensor also returns a `Solar` group, which becomes `radiation` and `UV`. The light reading is converted to W/m2 if the console is set to lux or foot-candles.
+
 ## Python script
 `examples/poll.py` pulls the data every 10 seconds and shows it in a table.
 
@@ -153,5 +155,6 @@ It looks like there are a bunch of weather stations using the same SoC (the chip
 | Station | Firmware |
 |---|---|
 | ACCUR8 DWS5100 5-in-1 | WeatherRouter V1.2.x |
+| ACCUR8 7100 | not reported, the settings page doesn't show it |
 
 Licence is MIT.

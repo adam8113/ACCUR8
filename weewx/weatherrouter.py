@@ -21,6 +21,7 @@
 # restart weewx.
 
 import logging
+import re
 import time
 
 import requests
@@ -29,7 +30,7 @@ import weewx
 import weewx.drivers
 
 DRIVER_NAME = 'WeatherRouter'
-DRIVER_VERSION = '1.1'
+DRIVER_VERSION = '1.2'
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +69,31 @@ def _to_mbar(value, unit):
 
 def _to_mm(value, unit):
     return value * 25.4 if unit.lower().startswith('in') else value
+
+
+def _to_wm2(value, unit):
+    # Consoles offer the light reading in W/m2, lux or foot-candles. WeeWX
+    # wants W/m2. The lux figure is the usual daylight approximation.
+    unit = unit.lower().replace(' ', '')
+    if unit in ('lux', 'lx'):
+        return value / 126.7
+    if unit in ('fc', 'footcandle', 'footcandles', 'foot-candles'):
+        return value * 10.764 / 126.7
+    if unit == 'kfc':
+        return value * 1000.0 * 10.764 / 126.7
+    return value
+
+
+# Stations with more than the base 5-in-1 kit return an extra group per paired
+# channel, titled "Sensor 1", "Sensor 2" and so on. Match the title rather than
+# the position, same reasoning as the wind and rain note in the README.
+_EXTRA_SENSOR = re.compile(r'^(?:sensor|channel|ch)\s*#?(\d+)$', re.IGNORECASE)
+
+# wview_extended, the WeeWX 5 default schema, has extraTemp1 to extraTemp8 and
+# extraHumid1 to extraHumid8. The older wview schema stops at extraTemp3 and
+# extraHumid2, so on that schema the higher channels are logged here and then
+# dropped by WeeWX.
+MAX_EXTRA_SENSORS = 8
 
 
 class WeatherRouterDriver(weewx.drivers.AbstractDevice):
@@ -144,6 +170,24 @@ class WeatherRouterDriver(weewx.drivers.AbstractDevice):
                 delta = total_mm - self.last_rain_total
                 packet['rain'] = delta if delta >= 0 else 0.0
             self.last_rain_total = total_mm
+
+        # Extra channels and the solar block, on kit that has them. A group
+        # whose reading won't parse is already dropped by _groups(), so a bad
+        # channel costs that channel and nothing else.
+        for title in g:
+            match = _EXTRA_SENSOR.match(title.strip())
+            if not match:
+                continue
+            channel = int(match.group(1))
+            if not 1 <= channel <= MAX_EXTRA_SENSORS:
+                log.warning("ignoring group %r, no extraTemp%d field exists",
+                            title, channel)
+                continue
+            put('extraTemp%d' % channel, title, 'Temperature', _to_c)
+            put('extraHumid%d' % channel, title, 'Humidity', lambda v, u: v)
+
+        put('radiation', 'Solar', 'Light', _to_wm2)
+        put('UV', 'Solar', 'UVI', lambda v, u: v)
 
         battery = data.get('battery', {}).get('list', [])
         if battery:
