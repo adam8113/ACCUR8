@@ -155,6 +155,8 @@ It looks like there are a bunch of weather stations using the same SoC (the chip
 | Station | Firmware |
 |---|---|
 | ACCUR8 DWS5100 5-in-1 | WeatherRouter V1.2.x |
-| ACCUR8 7100 | not reported, the settings page doesn't show it |
+| ACCUR8 7100 | WeatherRouter V1.2.5 |
+
+The firmware version is on the upgrade page, the settings page doesn't show it.
 
 Licence is MIT.
